@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridPulse — Campus Energy OS</title>
+<!--
+  ============================================================
+  GridPulse v2 — hackathon demo prototype
+  ------------------------------------------------------------
+  EVERYTHING in this file is simulated: the solar panels, the
+  batteries, the people in the rooms, the energy market.
+  There are NO real sensors and NO internet calls — the whole
+  app runs from this one file. Just double-click it.
+  Plain-English comments throughout so a beginner can follow.
+  ============================================================
+-->
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= LEFT ICON RAIL ================= -->
+  <aside class="rail" aria-label="Modules">
+    <div class="rail-logo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg></div>
+    <button class="nav-btn active" data-view="dashboard" title="Live Campus" aria-label="Live Campus"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 3.5V19a1.5 1.5 0 0 0 1.5 1.5h15.5"/><path d="M7 14.5l4-4.5 3 3 5-6.5"/></svg></span></button>
+    <button class="nav-btn" data-view="optimizer" title="Smart Optimizer" aria-label="Smart Optimizer"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h9M17.5 7.5H20M4 16.5h3M11.5 16.5H20"/><circle cx="15" cy="7.5" r="2.3"/><circle cx="9" cy="16.5" r="2.3"/></svg></span></button>
+    <button class="nav-btn" data-view="market" title="Energy Market" aria-label="Energy Market"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h12.5L13.5 5.5M20 15.5H7.5l3 3"/></svg></span></button>
+    <button class="nav-btn" data-view="rewards" title="Rewards" aria-label="Rewards"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span></button>
+    <button class="nav-btn" data-view="emergency" title="Emergency" aria-label="Emergency"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg></span></button>
+    <button class="nav-btn" data-view="holo" title="3D Campus" aria-label="3D Campus"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8L12 3.5 20.5 8v8L12 20.5 3.5 16V8z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5V20"/></svg></span></button>
+    <div class="rail-sim" title="Simulation mode — no real sensors">SIM</div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+    <header class="topbar">
+      <div class="view-title" id="view-title"><span class="vt-ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg></span>Live Campus Energy</div>
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <div class="topbar-actions">
+        <button class="btn sm btn-demo" id="btn-demo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7V5z"/></svg><span class="lbl">Play demo</span></button>
+        <div class="seg" id="baseline-toggle" role="group" aria-label="Baseline comparison">
+          <button class="seg-btn" data-base="off">Without GridPulse</button>
+          <button class="seg-btn active" data-base="on">With GridPulse</button>
+        </div>
+      </div>
+      <div class="clock">
+        <div class="sim" id="sim-clock">09:00 IST</div>
+        <div class="real" id="real-clock"></div>
+      </div>
+    </header>
+
+    <!-- backup tab switcher for phones: normal-flow chip row, independent of the fixed bottom bar -->
+    <nav class="tab-chips" aria-label="Sections">
+      <button class="nav-btn active" data-view="dashboard">Campus</button>
+      <button class="nav-btn" data-view="optimizer">Optimizer</button>
+      <button class="nav-btn" data-view="market">Market</button>
+      <button class="nav-btn" data-view="rewards">Rewards</button>
+      <button class="nav-btn" data-view="emergency">Emergency</button>
+      <button class="nav-btn" data-view="holo">3D Campus</button>
+    </nav>
+
+    <main>
+      <!-- ============ VIEW: DASHBOARD ============ -->
+      <section class="view active" id="view-dashboard">
+        <!-- TIME MACHINE: 24h scrubber — drag through the day, watch the campus breathe -->
+        <div class="tm-bar" id="tm-bar">
+          <div class="tm-kicker"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.5V12l3.3 2"/></svg>Time machine <span class="tm-state" id="tm-state">LIVE</span></div>
+          <div class="tm-row">
+            <button class="tm-playbtn" id="tm-play" aria-label="Play time-lapse"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7V5z"/></svg></button>
+            <div class="tm-clockwrap"><span class="tm-sky" id="tm-sky"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span><span class="tm-clock" id="tm-clock">09:00</span></div>
+            <div class="tm-mid">
+              <div class="tm-slider-wrap">
+                <div class="tm-track"><div class="tm-fill" id="tm-fill"></div></div>
+                <input type="range" id="tm-slider" min="0" max="24" step="0.25" value="9" aria-label="Scrub time of day">
+              </div>
+              <div class="tm-ticks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+              <div class="tm-label" id="tm-label">Morning ramp &middot; demand rising</div>
+            </div>
+            <button class="btn sm ghost tm-livebtn" id="tm-live" hidden>Back to live</button>
+          </div>
+        </div>
+        <div class="kicker">01 · Live campus</div>
+        <div class="baseline-banner" id="baseline-banner" hidden>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg>
+          <span><b>BASELINE</b> — the same campus <b>without</b> GridPulse. No auto-shutoff, no smart charging, no trading. This is the waste we're eliminating.</span>
+        </div>
+        <!-- v6: live campus map — the hero. buildings glow green (surplus) / amber (deficit) -->
+        <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21.5s-7.5-6.6-7.5-11.5a7.5 7.5 0 0 1 15 0c0 4.9-7.5 11.5-7.5 11.5z"/><circle cx="12" cy="10" r="2.6"/></svg>Live campus map <span class="tag"><span class="dot" style="background:#10B981"></span>surplus<span class="dot" style="background:#F59E0B"></span>deficit</span></div>
+        <div class="card map-card">
+          <svg id="campus-map" viewBox="0 0 1100 380" role="img" aria-label="Live campus energy map">
+            <rect x="0" y="0" width="1100" height="380" rx="14" fill="#0A2E23"/>
+            <rect x="20" y="182" width="1060" height="16" rx="8" fill="rgba(255,255,255,.08)"/>
+            <rect x="532" y="16" width="16" height="348" rx="8" fill="rgba(255,255,255,.08)"/>
+            <g class="map-b surplus" id="map-b0">
+              <rect class="bbox" x="40" y="50" width="210" height="100" rx="14"/>
+              <text class="map-name" x="145" y="96">Hostel A</text>
+              <text class="map-sub" x="145" y="123" id="map-sub-0">—</text>
+            </g>
+            <g class="map-b surplus" id="map-b1">
+              <rect class="bbox" x="290" y="50" width="210" height="100" rx="14"/>
+              <text class="map-name" x="395" y="96">Hostel B</text>
+              <text class="map-sub" x="395" y="123" id="map-sub-1">—</text>
+            </g>
+            <g class="map-b surplus" id="map-b2">
+              <rect class="bbox" x="590" y="50" width="250" height="100" rx="14"/>
+              <text class="map-name" x="715" y="96">CSE Block</text>
+              <text class="map-sub" x="715" y="123" id="map-sub-2">—</text>
+            </g>
+            <g class="map-b surplus" id="map-b3">
+              <rect class="bbox" x="880" y="50" width="180" height="100" rx="14"/>
+              <text class="map-name" x="970" y="96">Library</text>
+              <text class="map-sub" x="970" y="123" id="map-sub-3">—</text>
+            </g>
+            <g class="map-b surplus" id="map-b4">
+              <rect class="bbox" x="120" y="230" width="220" height="100" rx="14"/>
+              <text class="map-name" x="230" y="276">Canteen</text>
+              <text class="map-sub" x="230" y="303" id="map-sub-4">—</text>
+            </g>
+            <g class="map-b surplus" id="map-b5">
+              <rect class="bbox" x="700" y="230" width="220" height="100" rx="14"/>
+              <text class="map-name" x="810" y="276">Admin</text>
+              <text class="map-sub" x="810" y="303" id="map-sub-5">—</text>
+            </g>
+            <g id="map-particles"></g>
+            <rect id="map-daynight" x="0" y="0" width="1100" height="380" rx="14"
+                  fill="#0a1226" opacity="0" pointer-events="none"/>
+          </svg>
+          <div class="legend">
+            <span><span class="sw" style="background:#10b981"></span>Surplus — generating more than using</span>
+            <span><span class="sw" style="background:#f59e0b"></span>Deficit — drawing from grid / battery</span>
+          </div>
+        </div>
+
+        <!-- v6: scenario buttons — retune the sim live -->
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h9M17.5 7.5H20M4 16.5h3M11.5 16.5H20"/><circle cx="15" cy="7.5" r="2.3"/><circle cx="9" cy="16.5" r="2.3"/></svg>Scenario controls <span class="tag">retune the sim live</span></div>
+        <div class="btn-row" id="scenario-bar">
+          <button class="btn sm" data-scen="normal"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 5L4 9.5 8.5 14"/><path d="M4 9.5h9.5a6 6 0 0 1 0 12H11"/></svg>Normal</button>
+          <button class="btn sm ghost" data-scen="heatwave"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Heatwave</button>
+          <button class="btn sm ghost" data-scen="cloudy"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18.5a3.8 3.8 0 0 1-.6-7.5A5.8 5.8 0 0 1 17.7 9.7 3.9 3.9 0 0 1 17.2 18.5H7z"/></svg>Cloudy Day</button>
+          <button class="btn sm ghost" data-scen="examweek"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.5h10.5A3.5 3.5 0 0 1 19 7v13.5H8.5A3.5 3.5 0 0 1 5 17V3.5z"/><path d="M5 17a3.5 3.5 0 0 1 3.5-3.5H19"/><path d="M9 8h6"/></svg>Exam Week</button>
+        </div>
+
+        <div class="kpis">
+          <div class="card kpi" id="kpi-solar"><div class="k-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Solar generating</div><div class="k-value green" id="k-solar">0 kW</div><div class="k-sub" id="k-solar-sub">—</div></div>
+          <div class="card kpi" id="kpi-load"><div class="k-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="7" height="12" rx="1.5"/><rect x="13" y="4" width="7" height="17" rx="1.5"/><path d="M2.5 21h19"/></svg>Campus load</div><div class="k-value" id="k-load">0 kW</div><div class="k-sub" id="k-load-sub">—</div></div>
+          <div class="card kpi" id="kpi-batt"><div class="k-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="16" height="9" rx="2"/><path d="M21.5 11v3"/><path d="M7 11v3M11 11v3"/></svg>Avg battery</div><div class="k-value" id="k-batt">0%</div><div class="k-sub" id="k-batt-sub">—</div></div>
+          <div class="card kpi" id="kpi-save"><div class="k-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Saved today</div><div class="k-value amber" id="k-save">₹0</div><div class="k-sub" id="k-save-sub">by smart shutoff</div></div>
+        </div>
+
+        <!-- v6: anomaly alerts + explainable decision feed, side by side -->
+        <div class="market-cols">
+          <div class="card">
+            <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg>Anomaly alerts <span class="tag">auto-detect</span></div>
+            <div id="alert-list"></div>
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="8" height="8" rx="1.5"/><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5"/></svg>System decisions <span class="tag">what I did &amp; why</span></div>
+            <div id="decision-feed"></div>
+          </div>
+        </div>
+
+        <hr class="hr">
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="7" height="12" rx="1.5"/><rect x="13" y="4" width="7" height="17" rx="1.5"/><path d="M2.5 21h19"/></svg>Buildings <span class="tag">6 monitored</span></div>
+        <div class="grid6" id="bldg-grid"></div>
+
+        <div class="card chart-card">
+          <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 3.5V19a1.5 1.5 0 0 0 1.5 1.5h15.5"/><path d="M7 14.5l4-4.5 3 3 5-6.5"/></svg>Generation vs consumption <span class="tag">live · last 2 hours (sim)</span></div>
+          <canvas id="chart" width="1100" height="260"></canvas>
+          <div class="legend">
+            <span><span class="sw" style="background:#10b981"></span>Solar generation (kW)</span>
+            <span><span class="sw" style="background:#f59e0b"></span>Campus load (kW)</span>
+          </div>
+        </div>
+
+        <!-- forecast (merged in): tomorrow's plan, not just today's numbers -->
+        <hr class="hr">
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.5V12l3.3 2"/></svg>Tomorrow's forecast <span class="tag" id="wx-badge">predicted · sim</span><select id="wx-city" class="wx-select" aria-label="Forecast location"><option value="28.61,77.20" selected>New Delhi</option><option value="19.07,72.87">Mumbai</option><option value="12.97,77.59">Bengaluru</option><option value="13.08,80.27">Chennai</option><option value="22.57,88.36">Kolkata</option><option value="17.38,78.48">Hyderabad</option></select><span class="wx-temp" id="wx-temp"></span></div>
+        <div class="card chart-card forecast-mini">
+          <div class="section-title" style="margin-top:0">Next 24 hours: predicted solar vs load</div>
+          <canvas id="forecast-chart" width="1100" height="260"></canvas>
+          <div class="legend">
+            <span><span class="sw" style="background:#10b981"></span>Predicted solar (kW)</span>
+            <span><span class="sw" style="background:#f59e0b"></span>Predicted load (kW)</span>
+          </div>
+        </div>
+        <div class="rec-grid rec-mini" id="rec-grid"></div>
+
+        <!-- carbon counter: small emotional hook strip, ticks up with clean energy -->
+        <div class="carbon-strip" id="carbon-strip">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19.5C5 10 12.5 4.5 20 4.5c0 8-5 15-14 15"/><path d="M5 19.5c3-5.5 7-9.5 11.5-11.5"/></svg> <span id="co2-text"><b id="co2-val">2.40 t</b> CO₂ saved this month &nbsp;≈&nbsp; <b id="trees-val">110</b> trees planted</span>
+          <span style="margin-left:auto; font-size:12px; color:var(--muted);">clean energy at work</span>
+        </div>
+
+        <!-- schneider (merged in): integration-ready, no separate tab -->
+        <div class="schneider-strip">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3v4.5M14.5 3v4.5M7 7.5h10V12a5 5 0 0 1-10 0V7.5zM12 17v4"/></svg> <b>Schneider EcoStruxure-ready.</b>
+          GridPulse is designed to plug into Schneider's EcoStruxure Power Monitoring via Modbus/BACnet —
+          sensors → ESP32 gateway → GridPulse engine → EcoStruxure cloud.
+          <span class="tag">integration roadmap</span>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: OPTIMIZER ============ -->
+      <section class="view" id="view-optimizer">
+        <div class="kicker">02 · Smart optimizer</div>
+        <div class="savings-banner">
+          <div><div class="s-label">Energy saved by auto-shutoff</div><div class="s-value" id="save-kwh">0.0 kWh</div></div>
+          <div><div class="s-label">Money saved (₹7 / kWh)</div><div class="s-value" id="save-rs">₹0</div></div>
+        </div>
+
+        <div class="info-strip">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.7 10.7c.8.7 1.2 1.4 1.2 2.3h5c0-.9.4-1.6 1.2-2.3A6 6 0 0 0 12 3z"/></svg> <b>HVAC</b> = Heating, Ventilation &amp; Air Conditioning — basically the campus AC system.
+          When a room is empty, GridPulse switches its AC and lights <b>off</b> automatically.
+          Press the <b>+ / −</b> buttons to move people in and out and watch it react.
+        </div>
+
+        <div class="btn-row">
+          <button class="btn sm" id="btn-class"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.7A6 6 0 0 1 21 20"/></svg>Class change</button>
+          <button class="btn sm amber" id="btn-empty"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4.5A1.5 1.5 0 0 1 7.5 3h7A1.5 1.5 0 0 1 16 4.5V21"/><path d="M3.5 21h17"/><circle cx="12.8" cy="12" r=".9"/></svg>Empty all rooms</button>
+          <button class="btn sm" id="btn-fill"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.7A6 6 0 0 1 21 20"/></svg>Fill all rooms</button>
+          <button class="btn sm ghost" id="btn-ff"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5.5L12 12l-7.5 6.5v-13zM13 5.5L20.5 12 13 18.5v-13z"/></svg>Fast-forward 1 hour</button>
+        </div>
+
+        <div class="card" style="padding:6px 10px;">
+          <table class="rooms">
+            <thead><tr><th>Room</th><th>People</th><th>HVAC (AC)</th><th>Lights</th><th>Auto mode</th></tr></thead>
+            <tbody id="room-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- battery (merged in): money intelligence lives with the optimizer -->
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="16" height="9" rx="2"/><path d="M21.5 11v3"/><path d="M7 11v3M11 11v3"/></svg>Battery storage <span class="tag">charge cheap · use at peak</span></div>
+        <div class="info-strip">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg> <b>Money intelligence.</b> Indian power tariffs change by time of day — cheap at night, expensive
+          in the evening peak. GridPulse charges batteries when power is cheap and discharges when it's costly.
+        </div>
+        <div class="tariff-row">
+          <div class="tariff cheap"><b><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.2A8.2 8.2 0 0 1 9.8 4 8.2 8.2 0 1 0 20 14.2z"/></svg>11pm – 6am</b>₹4 / kWh — off-peak, cheapest</div>
+          <div class="tariff mid"><b><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>6am – 6pm</b>₹7 / kWh — normal daytime</div>
+          <div class="tariff peak"><b><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.3"/><path d="M12 7.5V12l3.3 2"/></svg>6pm – 11pm</b>₹11 / kWh — evening peak, priciest</div>
+        </div>
+        <div class="card">
+          <div class="section-title" style="margin-top:0">24-hour charge / discharge schedule <span class="tag" id="sched-tag">standard</span></div>
+          <div class="sched24" id="sched24"></div>
+          <div class="sched-axis" id="sched-axis"></div>
+          <div class="legend">
+            <span><span class="sw" style="background:#10b981"></span>Charge</span>
+            <span><span class="sw" style="background:#F59E0B"></span>Discharge (peak shaving)</span>
+            <span><span class="sw" style="background:rgba(255,255,255,.12)"></span>Idle</span>
+          </div>
+        </div>
+        <div class="card chart-card" style="margin-top:16px;">
+          <div class="section-title" style="margin-top:0">Battery state-of-charge over 24h <span class="tag">%</span></div>
+          <canvas id="soc-chart" width="1100" height="220"></canvas>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="btn-schedule"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg>Run smart schedule</button>
+        </div>
+        <div class="kpis" style="grid-template-columns:repeat(2,1fr);">
+          <div class="card kpi"><div class="k-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Projected monthly savings</div><div class="k-value amber" id="batt-save">₹8,400</div><div class="k-sub" id="batt-save-sub">standard schedule</div></div>
+          <div class="card kpi"><div class="k-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 3.5V19a1.5 1.5 0 0 0 1.5 1.5h15.5"/><path d="M7 14.5l4-4.5 3 3 5-6.5"/></svg>Peak-hour grid draw</div><div class="k-value" id="batt-peak">38%</div><div class="k-sub">of evening load from grid</div></div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: MARKETPLACE ============ -->
+      <section class="view" id="view-market">
+        <div class="kicker">03 · Energy market</div>
+        <div class="ticker">
+          <div><div class="t-label"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg>Credit price (1 credit = 1 kWh)</div>
+          <div class="t-price" id="mk-price">₹7.00</div></div>
+          <div class="t-dir" id="mk-dir">—</div>
+          <div style="margin-left:auto; font-size:13px; color:var(--muted); max-width:340px; line-height:1.5;">
+            Price moves with supply &amp; demand: lots of sellers → cheaper · lots of buyers → pricier.
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn amber" id="btn-demotrade"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7V5z"/></svg>Run demo trade: CSE Block → Library (20 credits)</button>
+        </div>
+
+        <div class="market-cols">
+          <div class="card">
+            <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8L12 3.5 20.5 8v8L12 20.5 3.5 16V8z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5V20"/></svg>Sell offers <span class="tag" id="sell-count">0</span></div>
+            <div id="sell-list"></div>
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.9M17.5 14.7A6 6 0 0 1 21 20"/></svg>Buy requests <span class="tag" id="buy-count">0</span></div>
+            <div id="buy-list"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Post your own sell offer</div>
+          <div class="form-grid">
+            <div><label>Building</label><select id="f-bldg"></select></div>
+            <div><label>Credits (kWh)</label><input id="f-qty" type="number" min="1" max="200" value="25"></div>
+            <div><label>Price per credit (₹)</label><input id="f-price" type="number" min="1" max="20" step="0.5" value="7"></div>
+          </div>
+          <button class="btn" id="btn-post">Post offer</button>
+        </div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7z"/><path d="M3.5 9.5h17"/><circle cx="16.5" cy="14.5" r="1.2"/></svg>Wallets <span class="tag">credits + cash per building</span></div>
+        <div class="wallet-grid" id="wallet-grid"></div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 6h12M8.5 12h12M8.5 18h12"/><path d="M4 6h.1M4 12h.1M4 18h.1"/></svg>Transaction log</div>
+          <div class="txlog" id="tx-log"><div class="tx"><span class="t-time">—</span>No trades yet. Post an offer or run the demo trade above.</div></div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: REWARDS ============ -->
+      <section class="view" id="view-rewards">
+        <div class="kicker">04 · Rewards</div>
+        <div class="info-strip">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.3"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> <b>How it works:</b> every room gets <b>5 kWh/day</b> → stay under budget → earn
+          <b>10 GreenPoints per kWh saved</b> → redeem at the canteen &amp; stationery shop.
+        </div>
+
+        <div class="market-cols">
+          <div class="card">
+            <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>My Room — A-101 <span class="tag">today</span></div>
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-wrap:wrap;">
+              <div class="kpi"><div class="k-value" id="rw-kwh" style="font-size:34px; margin:0;">1.20 kWh</div></div>
+              <span class="badge surplus" id="rw-status">UNDER BUDGET</span>
+            </div>
+            <div class="bar" id="rw-bar" style="height:12px;"><div id="rw-bar-fill" style="width:24%"></div></div>
+            <div style="font-size:12.5px; color:var(--muted); margin-top:6px;">Daily budget: <b>5 kWh</b> · ticks live</div>
+          </div>
+          <div class="card" style="border-top:5px solid var(--amber-bright);">
+            <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>GreenPoints <span class="tag">wallet</span></div>
+            <div class="kpi"><div class="k-value amber" id="gp-points" style="font-size:38px; margin:0;">120</div></div>
+            <div style="font-size:13.5px; font-weight:700; color:#fcd9a0;" id="rw-streak">4-day green streak · 1.5x multiplier</div>
+          </div>
+        </div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8L12 3.5 20.5 8v8L12 20.5 3.5 16V8z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5V20"/></svg>Rewards catalog <span class="tag">redeem with points</span></div>
+        <div class="card"><div id="reward-catalog"></div></div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.8a2.2 2.2 0 0 0 0 4.4v1.8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.8a2.2 2.2 0 0 0 0-4.4V8.5z"/><path d="M13.5 7v2M13.5 11v2M13.5 15v2"/></svg>My redemptions</div>
+        <div class="card"><div class="txlog" id="redemption-list" style="max-height:180px;"></div></div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="7" height="12" rx="1.5"/><rect x="13" y="4" width="7" height="17" rx="1.5"/><path d="M2.5 21h19"/></svg>Floor leaderboard <span class="tag">this week · points</span></div>
+        <div class="card"><div id="floor-lb"></div></div>
+
+        <!-- leaderboard (merged in): competition keeps the whole campus saving -->
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/><path d="M8 5H4.5A3.5 3.5 0 0 0 8 12M16 5h3.5A3.5 3.5 0 0 1 16 12"/><path d="M12 12.5V16M8.5 20.5h7M10 16h4"/></svg>Greenest Building of the Week <span class="tag">campus ranking</span></div>
+        <div class="card">
+          <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Score = solar self-use + auto-shutoff savings + battery health. Friendly competition makes everyone save more.</div>
+          <div id="lb-list"></div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: EMERGENCY ============ -->
+      <section class="view" id="view-emergency">
+        <div class="kicker">05 · Emergency</div>
+        <div class="emg-banner" id="emg-banner"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg>GRID DOWN — ISLAND MODE ACTIVE · campus running on solar + batteries</div>
+
+        <div class="info-strip">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg> <b>Blackout survival.</b> Power cuts happen — and diesel generators are expensive and dirty.
+          GridPulse <b>islands</b> the campus onto its own solar + batteries: critical loads stay on,
+          empty rooms shed automatically, and a live countdown shows how long the backup lasts.
+          Press the button to watch it happen. <span class="tag">SIM MODE</span>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn danger" id="btn-gridfail"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg>SIMULATE GRID FAILURE</button>
+          <button class="btn ghost" id="btn-restore" style="display:none;"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg>RESTORE GRID</button>
+        </div>
+
+        <div class="card" id="emg-status-card" style="display:none;">
+          <div class="section-title" style="margin-top:0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="16" height="9" rx="2"/><path d="M21.5 11v3"/><path d="M7 11v3M11 11v3"/></svg>Backup status <span class="tag">live</span></div>
+          <div class="emg-count" id="emg-countdown">–</div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">backup power remaining</div>
+          <div class="bar over" style="height:14px;"><div id="emg-battfill" style="width:100%"></div></div>
+          <div style="font-size:13.5px; margin-top:10px;" id="emg-solar">…</div>
+        </div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="7" height="12" rx="1.5"/><rect x="13" y="4" width="7" height="17" rx="1.5"/><path d="M2.5 21h19"/></svg>Building status <span class="tag">island mode</span></div>
+        <div class="card"><div id="emg-buildings"></div></div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7.5 3v6c0 4.6-3.2 7.6-7.5 9-4.3-1.4-7.5-4.4-7.5-9V6L12 3z"/><path d="M9 11.8l2.2 2.2 4-4.2"/></svg>Critical loads — never shed</div>
+        <div class="card">
+          <div class="bldg">
+            <div class="row"><span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 3h5M10.5 3v5.5L5 18a2.4 2.4 0 0 0 2.1 3.5h9.8A2.4 2.4 0 0 0 19 18l-5.5-9.5V3"/></svg> Research labs (CSE Block)</span><b style="color:var(--emerald)">PROTECTED</b></div>
+            <div class="row"><span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.5"/><path d="M7.5 7.2v.1M7.5 16.7v.1"/></svg> Server room</span><b style="color:var(--emerald)">PROTECTED</b></div>
+            <div class="row"><span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.7 10.7c.8.7 1.2 1.4 1.2 2.3h5c0-.9.4-1.6 1.2-2.3A6 6 0 0 0 12 3z"/></svg> Emergency lighting</span><b style="color:var(--emerald)">PROTECTED</b></div>
+            <div class="row"><span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5s6 6.6 6 10.8a6 6 0 0 1-12 0C6 10.1 12 3.5 12 3.5z"/></svg> Water pumps</span><b style="color:var(--emerald)">PROTECTED</b></div>
+          </div>
+        </div>
+
+        <div class="section-title"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="8" height="8" rx="1.5"/><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5"/></svg>How island mode thinks</div>
+        <div class="emg-steps">
+          <div class="emg-step"><b><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="16" height="9" rx="2"/><path d="M21.5 11v3"/><path d="M7 11v3M11 11v3"/></svg> Battery scheduler</b>Keeps a 30% reserve charged every evening — that's the blackout fund.</div>
+          <div class="emg-step"><b><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 3.5V19a1.5 1.5 0 0 0 1.5 1.5h15.5"/><path d="M7 14.5l4-4.5 3 3 5-6.5"/></svg> Forecast</b>Predicts when solar returns, so we know exactly how long the batteries must last.</div>
+          <div class="emg-step"><b><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h9M17.5 7.5H20M4 16.5h3M11.5 16.5H20"/><circle cx="15" cy="7.5" r="2.3"/><circle cx="9" cy="16.5" r="2.3"/></svg> Occupancy data</b>Empty rooms get shed first — nobody's there to notice.</div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: 3D CAMPUS HOLOGRAM ============ -->
+      <section class="view" id="view-holo">
+        <div class="kicker">06 · 3D Campus</div>
+        <div class="holo-chamber" id="holo-chamber">
+          <canvas id="holo-canvas"></canvas>
+          <div class="holo-hud holo-hud-tl">HOLO-MAP · LIVE</div>
+          <div class="holo-hud holo-hud-tr"><span id="holo-clock">09:00</span> IST</div>
+          <div class="holo-hint">Drag to orbit · scroll to zoom · tap a building</div>
+          <div class="holo-corner tl"></div><div class="holo-corner tr"></div>
+          <div class="holo-corner bl"></div><div class="holo-corner br"></div>
+          <div class="holo-toolbar">
+            <div class="holo-seg" role="group" aria-label="Hologram layer">
+              <button class="holo-segbtn" data-hlayer="energy">Energy</button>
+              <button class="holo-segbtn active" data-hlayer="split">Split</button>
+              <button class="holo-segbtn" data-hlayer="occupancy">Occupancy</button>
+            </div>
+            <button class="btn sm ghost holo-cinebtn" id="holo-cine">Cinematic: ON</button>
+            <div class="holo-zoom">
+              <button class="btn sm ghost" id="holo-zin" aria-label="Zoom in">+</button>
+              <button class="btn sm ghost" id="holo-zout" aria-label="Zoom out">-</button>
+            </div>
+          </div>
+          <div class="holo-card" id="holo-card" hidden>
+            <button class="holo-x" id="holo-cardx" aria-label="Close panel">x</button>
+            <div class="holo-card-name" id="holo-card-name"></div>
+            <div id="holo-card-rows"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ================= RIGHT INFO PANEL (v7: contextual per tab) ================= -->
+  <aside class="sidepanel" aria-label="Context panel">
+    <div class="sp-kicker" id="sp-kicker">Context</div>
+    <div id="sidepanel-body"></div>
+  </aside>
+</div>
+
+<!-- showcase: splash intro (dismiss on button, backdrop click, or any key) -->
+<div class="splash" id="splash">
+  <div class="splash-inner">
+    <div class="splash-kicker">GRIDPULSE</div>
+    <h1>This campus wastes &#8377;16.4 lakh every year.</h1>
+    <p>Watch it get fixed — live.</p>
+    <button class="btn" id="splash-enter"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15M13.5 6l6 6-6 6"/></svg>Enter the campus</button>
+  </div>
+</div>
+
+<!-- showcase: auto-demo caption overlay -->
+<div class="demo-caption" id="demo-caption" role="status">
+  <div style="flex:1; min-width:0;">
+    <div class="dc-kicker" id="dc-kicker">01 · SEE</div>
+    <div class="dc-text" id="dc-text"></div>
+    <div class="dc-dots" id="dc-dots"></div>
+  </div>
+  <button class="btn sm ghost" id="btn-demostop">Stop</button>
+</div>
+
+<div id="toast-wrap"></div>
+
+<!-- mobile bottom tab bar: replaces the sidebar on phones (auto-wired by the same .nav-btn handlers) -->
+<nav class="mobile-nav" aria-label="Sections">
+  <button class="nav-btn active" data-view="dashboard"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg></span>Campus</button>
+  <button class="nav-btn" data-view="optimizer"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h9M17.5 7.5H20M4 16.5h3M11.5 16.5H20"/><circle cx="15" cy="7.5" r="2.3"/><circle cx="9" cy="16.5" r="2.3"/></svg></span>Optimizer</button>
+  <button class="nav-btn" data-view="market"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h12.5L13.5 5.5M20 15.5H7.5l3 3"/></svg></span>Market</button>
+  <button class="nav-btn" data-view="rewards"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>Rewards</button>
+  <button class="nav-btn" data-view="emergency"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.8v.3"/></svg></span>Emergency</button>
+  <button class="nav-btn" data-view="holo"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8L12 3.5 20.5 8v8L12 20.5 3.5 16V8z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5V20"/></svg></span>3D</button>
+</nav>
+
+<script src="index.js"></script>
+</body>
+</html>
