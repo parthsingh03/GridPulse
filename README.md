@@ -1,5 +1,8 @@
 # GridPulse ⚡
 
+**Live demo:**  https://parthsingh03.github.io/gridpulse/
+
+
 A campus energy ecosystem: occupancy-aware HVAC/lighting optimization, a live energy dashboard, and peer-to-peer sharing and trading of surplus solar or battery energy credits.
 
 Built for the **Yuva Yodha hackathon** (idea-submission round, October 2026).
