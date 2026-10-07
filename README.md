@@ -1,6 +1,6 @@
 # GridPulse ⚡
 
-**Live demo:**  https://parthsingh03.github.io/gridpulse/
+**Live demo:**  https://parthsingh03.github.io/GridPulse/
 
 
 A campus energy ecosystem: occupancy-aware HVAC/lighting optimization, a live energy dashboard, and peer-to-peer sharing and trading of surplus solar or battery energy credits.
